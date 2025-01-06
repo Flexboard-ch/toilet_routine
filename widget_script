@@ -115,15 +115,14 @@
         /* Three Dots Icon */
         .dots {
             position: absolute;
-            top: 5%;
-            right: 5%;
-            font-size: calc(2vw + 2vh);
+            top: 2%; /* Distance from the top */
+            right: 2%; /* Distance from the right */
+            font-size: calc(2vw + 2vh); /* Scales with viewport */
             font-weight: bold;
-            color: #28A745;
+            color: gray; /* Set color to gray */
             cursor: pointer;
             z-index: 10;
         }
-
     </style>
 </head>
 <body>
@@ -172,6 +171,20 @@
         const password = "7247"; // Password for unlocking green buttons
         let greenLocked = true;
 
+        // Check if there is saved state in localStorage
+        window.onload = function() {
+            const savedStates = JSON.parse(localStorage.getItem('buttonStates'));
+            if (savedStates) {
+                buttons.forEach((button, index) => {
+                    if (savedStates[index]) {
+                        button.classList.add('active');
+                    } else {
+                        button.classList.remove('active');
+                    }
+                });
+            }
+        };
+
         // Function to unlock green buttons when the correct password is entered
         function unlockGreenButtons() {
             buttons.forEach(button => {
@@ -180,6 +193,15 @@
                 }
             });
             greenLocked = false; // Mark that green buttons are unlocked
+        }
+
+        // Save button states to localStorage
+        function saveButtonStates() {
+            const states = [];
+            buttons.forEach(button => {
+                states.push(button.classList.contains('active'));
+            });
+            localStorage.setItem('buttonStates', JSON.stringify(states));
         }
 
         // Event listener for opening the password modal when clicking on the dots
@@ -215,6 +237,9 @@
                     return;
                 }
                 button.classList.toggle('active'); // Toggle active state for all buttons
+
+                // Save the state after a click
+                saveButtonStates();
             });
         });
     </script>
