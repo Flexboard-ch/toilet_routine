@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Touchscreen Grid</title>
+    <style>
+        html, body {
+            height: 100%;
+            margin: 0;
+            font-family: Arial, sans-serif;
+        }
+
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: #f0f0f0;
+            position: relative;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr); /* 5 columns */
+            grid-template-rows: repeat(4, 1fr); /* 4 rows */
+            gap: 2%; /* Space between buttons */
+            width: 90%;
+            height: 90%;
+        }
+
+        .button {
+            border-radius: 10px;
+            position: relative;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            background-color: transparent;
+            border: 2px solid transparent;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: calc(1vw + 1vh); /* Font size adapts */
+        }
+
+        .button.checkmark {
+            border-color: #28A745;
+        }
+
+        .button.toilet {
+            border-color: #007BFF;
+        }
+
+        .button.poop {
+            border-color: #8B4513;
+        }
+
+        .button.panty {
+            border-color: #FF0000;
+        }
+
+        .button.active.checkmark {
+            background-color: #28A745;
+        }
+
+        .button.active.toilet {
+            background-color: #007BFF;
+        }
+
+        .button.active.poop {
+            background-color: #8B4513;
+        }
+
+        .button.active.panty {
+            background-color: #FF0000;
+        }
+
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.6);
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background-color: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            width: 80%; /* Adaptive width */
+            max-width: 300px; /* Maximum width for larger screens */
+        }
+
+        .modal input {
+            width: 100%;
+            padding: 10px;
+            font-size: 16px;
+        }
+
+        .modal button {
+            padding: 10px 20px;
+            margin-top: 10px;
+            font-size: 16px;
+            cursor: pointer;
+            background-color: #007BFF;
+            color: white;
+            border: none;
+            border-radius: 5px;
+        }
+
+        /* Three Dots Icon */
+        .dots {
+            position: absolute;
+            top: 5%;
+            right: 5%;
+            font-size: calc(2vw + 2vh);
+            font-weight: bold;
+            color: #28A745;
+            cursor: pointer;
+            z-index: 10;
+        }
+
+    </style>
+</head>
+<body>
+    <!-- Three Dots Icon (outside of all buttons) -->
+    <div class="dots" id="dots">•••</div>
+
+    <div class="grid">
+        <!-- Buttons -->
+        <div class="button checkmark" id="button1"></div>
+        <div class="button checkmark" id="button2"></div>
+        <div class="button checkmark" id="button3"></div>
+        <div class="button checkmark" id="button4"></div>
+        <div class="button checkmark" id="button5"></div>
+        <div class="button toilet" id="button6"></div>
+        <div class="button toilet" id="button7"></div>
+        <div class="button toilet" id="button8"></div>
+        <div class="button toilet" id="button9"></div>
+        <div class="button toilet" id="button10"></div>
+        <div class="button poop" id="button11"></div>
+        <div class="button poop" id="button12"></div>
+        <div class="button poop" id="button13"></div>
+        <div class="button poop" id="button14"></div>
+        <div class="button poop" id="button15"></div>
+        <div class="button panty" id="button16"></div>
+        <div class="button panty" id="button17"></div>
+        <div class="button panty" id="button18"></div>
+        <div class="button panty" id="button19"></div>
+        <div class="button panty" id="button20"></div>
+    </div>
+
+    <!-- Modal for Password -->
+    <div class="modal" id="passwordModal">
+        <div class="modal-content">
+            <h3>Enter Password</h3>
+            <input type="password" id="passwordInput" placeholder="Password">
+            <button id="submitPassword">Submit</button>
+        </div>
+    </div>
+
+    <script>
+        const buttons = document.querySelectorAll('.button');
+        const modal = document.getElementById('passwordModal');
+        const passwordInput = document.getElementById('passwordInput');
+        const submitPassword = document.getElementById('submitPassword');
+        const dots = document.getElementById('dots');
+        const password = "7247"; // Password for unlocking green buttons
+        let greenLocked = true;
+
+        // Function to unlock green buttons when the correct password is entered
+        function unlockGreenButtons() {
+            buttons.forEach(button => {
+                if (button.classList.contains('checkmark')) {
+                    button.classList.remove('active'); // Keep the green buttons inactive initially
+                }
+            });
+            greenLocked = false; // Mark that green buttons are unlocked
+        }
+
+        // Event listener for opening the password modal when clicking on the dots
+        dots.addEventListener('click', () => {
+            modal.style.display = 'flex'; // Show the modal
+        });
+
+        // Submit password and unlock the green buttons
+        submitPassword.addEventListener('click', () => {
+            if (passwordInput.value === password) {
+                unlockGreenButtons();
+                modal.style.display = 'none'; // Close modal after successful password
+                passwordInput.value = ''; // Clear password input
+            } else {
+                alert("Incorrect password!"); // Alert on wrong password
+            }
+        });
+
+        // Close modal when clicking outside the modal area
+        window.onclick = (event) => {
+            if (event.target === modal) {
+                modal.style.display = 'none'; // Close modal
+                passwordInput.value = ''; // Clear password input
+            }
+        };
+
+        // Button click behavior
+        buttons.forEach(button => {
+            // Only toggle active state for non-green buttons, or green buttons once unlocked
+            button.addEventListener('click', () => {
+                if (button.classList.contains('checkmark') && greenLocked) {
+                    // Don't trigger modal or button change for locked green buttons
+                    return;
+                }
+                button.classList.toggle('active'); // Toggle active state for all buttons
+            });
+        });
+    </script>
+</body>
+</html>
