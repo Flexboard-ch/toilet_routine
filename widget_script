@@ -22,10 +22,19 @@
         .grid {
             display: grid;
             grid-template-columns: repeat(5, 1fr); /* 5 columns */
-            grid-template-rows: repeat(4, 1fr); /* 4 rows */
+            grid-template-rows: auto repeat(4, 1fr); /* Top row for weekdays, 4 rows for buttons */
             gap: 2%; /* Space between buttons */
             width: 90%;
             height: 90%;
+        }
+
+        /* Weekday Labels */
+        .weekday {
+            text-align: center;
+            font-weight: bold;
+            font-size: calc(1vw + 1vh);
+            background-color: #ddd;
+            padding: 10px;
         }
 
         .button {
@@ -73,6 +82,17 @@
             background-color: #FF0000;
         }
 
+        /* Icon Styles */
+        .icon {
+            font-size: 3rem; /* Emoji size */
+            color: gray;
+            transition: color 0.3s ease;
+        }
+
+        .icon.active {
+            color: inherit; /* Change color back when active */
+        }
+
         /* Modal Styles */
         .modal {
             display: none;
@@ -91,8 +111,8 @@
             padding: 20px;
             border-radius: 10px;
             text-align: center;
-            width: 80%; /* Adaptive width */
-            max-width: 300px; /* Maximum width for larger screens */
+            width: 80%;
+            max-width: 300px;
         }
 
         .modal input {
@@ -115,11 +135,11 @@
         /* Three Dots Icon */
         .dots {
             position: absolute;
-            top: 2%; /* Distance from the top */
-            right: 2%; /* Distance from the right */
-            font-size: calc(2vw + 2vh); /* Scales with viewport */
+            top: 2%;
+            right: 2%;
+            font-size: calc(2vw + 2vh);
             font-weight: bold;
-            color: gray; /* Set color to gray */
+            color: gray;
             cursor: pointer;
             z-index: 10;
         }
@@ -130,27 +150,34 @@
     <div class="dots" id="dots">•••</div>
 
     <div class="grid">
+        <!-- Top row for weekdays -->
+        <div class="weekday">Lundi</div>
+        <div class="weekday">Mardi</div>
+        <div class="weekday">Mercredi</div>
+        <div class="weekday">Jeudi</div>
+        <div class="weekday">Vendredi</div>
+
         <!-- Buttons -->
-        <div class="button checkmark" id="button1"></div>
-        <div class="button checkmark" id="button2"></div>
-        <div class="button checkmark" id="button3"></div>
-        <div class="button checkmark" id="button4"></div>
-        <div class="button checkmark" id="button5"></div>
-        <div class="button toilet" id="button6"></div>
-        <div class="button toilet" id="button7"></div>
-        <div class="button toilet" id="button8"></div>
-        <div class="button toilet" id="button9"></div>
-        <div class="button toilet" id="button10"></div>
-        <div class="button poop" id="button11"></div>
-        <div class="button poop" id="button12"></div>
-        <div class="button poop" id="button13"></div>
-        <div class="button poop" id="button14"></div>
-        <div class="button poop" id="button15"></div>
-        <div class="button panty" id="button16"></div>
-        <div class="button panty" id="button17"></div>
-        <div class="button panty" id="button18"></div>
-        <div class="button panty" id="button19"></div>
-        <div class="button panty" id="button20"></div>
+        <div class="button checkmark" id="button1"><span class="icon">✅</span></div>
+        <div class="button checkmark" id="button2"><span class="icon">✅</span></div>
+        <div class="button checkmark" id="button3"><span class="icon">✅</span></div>
+        <div class="button checkmark" id="button4"><span class="icon">✅</span></div>
+        <div class="button checkmark" id="button5"><span class="icon">✅</span></div>
+        <div class="button toilet" id="button6"><span class="icon">🚽</span></div>
+        <div class="button toilet" id="button7"><span class="icon">🚽</span></div>
+        <div class="button toilet" id="button8"><span class="icon">🚽</span></div>
+        <div class="button toilet" id="button9"><span class="icon">🚽</span></div>
+        <div class="button toilet" id="button10"><span class="icon">🚽</span></div>
+        <div class="button poop" id="button11"><span class="icon">💩</span></div>
+        <div class="button poop" id="button12"><span class="icon">💩</span></div>
+        <div class="button poop" id="button13"><span class="icon">💩</span></div>
+        <div class="button poop" id="button14"><span class="icon">💩</span></div>
+        <div class="button poop" id="button15"><span class="icon">💩</span></div>
+        <div class="button panty" id="button16"><span class="icon">🩲</span></div>
+        <div class="button panty" id="button17"><span class="icon">🩲</span></div>
+        <div class="button panty" id="button18"><span class="icon">🩲</span></div>
+        <div class="button panty" id="button19"><span class="icon">🩲</span></div>
+        <div class="button panty" id="button20"><span class="icon">🩲</span></div>
     </div>
 
     <!-- Modal for Password -->
@@ -178,21 +205,25 @@
                 buttons.forEach((button, index) => {
                     if (savedStates[index]) {
                         button.classList.add('active');
+                        const icon = button.querySelector('.icon');
+                        icon.classList.add('active');
                     } else {
                         button.classList.remove('active');
+                        const icon = button.querySelector('.icon');
+                        icon.classList.remove('active');
                     }
                 });
             }
         };
 
-        // Function to unlock green buttons when the correct password is entered
+        // Unlock green buttons once password is entered correctly
         function unlockGreenButtons() {
             buttons.forEach(button => {
                 if (button.classList.contains('checkmark')) {
                     button.classList.remove('active'); // Keep the green buttons inactive initially
                 }
             });
-            greenLocked = false; // Mark that green buttons are unlocked
+            greenLocked = false;
         }
 
         // Save button states to localStorage
@@ -233,13 +264,12 @@
             // Only toggle active state for non-green buttons, or green buttons once unlocked
             button.addEventListener('click', () => {
                 if (button.classList.contains('checkmark') && greenLocked) {
-                    // Don't trigger modal or button change for locked green buttons
-                    return;
+                    return; // Don't trigger modal or button change for locked green buttons
                 }
-                button.classList.toggle('active'); // Toggle active state for all buttons
-
-                // Save the state after a click
-                saveButtonStates();
+                button.classList.toggle('active'); // Toggle active state
+                const icon = button.querySelector('.icon');
+                icon.classList.toggle('active'); // Toggle icon color change
+                saveButtonStates(); // Save the button state locally
             });
         });
     </script>
