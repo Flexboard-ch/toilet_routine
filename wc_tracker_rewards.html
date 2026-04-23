@@ -569,7 +569,7 @@ body {
   <div class="confirm-box">
     <div class="c-icon">🔄</div>
     <div class="c-title">Nouvelle semaine ?</div>
-    <div class="c-sub">Les points de la semaine seront ajoutés au total, puis la grille sera effacée.</div>
+    <div class="c-sub">La grille de la semaine sera effacée pour repartir à zéro.</div>
     <div class="c-btns">
       <button class="c-cancel" onclick="doReset(false)">Annuler</button>
       <button class="c-ok"     onclick="doReset(true)">Oui !</button>
@@ -632,8 +632,10 @@ const todayIdx = (() => { const d=new Date().getDay(); return d===0?6:d-1; })();
 function weekStart(offset=0) {
   const d = new Date();
   d.setDate(d.getDate() - todayIdx + offset*7);
-  d.setHours(0,0,0,0);
-  return d.toISOString().slice(0,10);
+  const y = d.getFullYear();
+  const m = String(d.getMonth()+1).padStart(2,'0');
+  const day = String(d.getDate()).padStart(2,'0');
+  return `${y}-${m}-${day}`;
 }
 
 function formatWeekLabel(offset) {
@@ -685,7 +687,13 @@ function calcWeekPoints(data) {
   if (Array.from({length:7},(_,i)=>i).every(i => s[i] && s[i].parent)) pts += 5;
   return pts;
 }
-function grandTotal() { return totalPoints + calcWeekPoints(); }
+function pastWeeksPts() {
+  const cwid = currentWeekId();
+  return Object.entries(weeks)
+    .filter(([wid]) => wid !== cwid)
+    .reduce((sum, [, data]) => sum + calcWeekPoints(data), 0);
+}
+function grandTotal() { return pastWeeksPts() + calcWeekPoints() + totalPoints; }
 
 function nextRewardFor(list, v) { return list.slice().sort((a,b)=>a.threshold-b.threshold).find(r=>r.threshold>v)||null; }
 function prevThresholdFor(list, v) { const p=list.slice().sort((a,b)=>a.threshold-b.threshold).filter(r=>r.threshold<=v); return p.length?p[p.length-1].threshold:0; }
@@ -962,7 +970,7 @@ function removeReward(type, i) {
 // ── Points adjust ──
 function applyPtsAdjust() {
   const newTotal = parseInt(document.getElementById('ptsAdjust').value) || 0;
-  totalPoints = Math.max(0, newTotal - calcWeekPoints());
+  totalPoints = newTotal - pastWeeksPts() - calcWeekPoints();
   document.getElementById('ptsAdjust').value = grandTotal();
   document.getElementById('settingsPtsDisplay').textContent = `Total : ${grandTotal()} pts`;
   persistAll();
@@ -979,8 +987,12 @@ function confirmResetPoints() {
 function doResetPoints(yes) {
   document.getElementById('confirmResetPtsDialog').classList.remove('show');
   if (!yes) return;
-  totalPoints = 0;
-  Object.values(weeks).forEach(w => { Object.keys(w).forEach(k => { if (k.startsWith('_tr_')) delete w[k]; }); });
+  // Offset so grandTotal = 0 but all historical week data is preserved
+  totalPoints = -(pastWeeksPts() + calcWeekPoints());
+  // Remove reward unlock flags so rewards can be re-earned
+  Object.values(weeks).forEach(w => {
+    Object.keys(w).forEach(k => { if (k.startsWith('_tr_') || k.startsWith('_wr_')) delete w[k]; });
+  });
   persistAll();
   document.getElementById('settingsPtsDisplay').textContent = `Total : ${grandTotal()} pts`;
   renderFooter();
@@ -993,7 +1005,6 @@ function confirmReset() {
 function doReset(yes) {
   document.getElementById('confirmDialog').classList.remove('show');
   if (!yes) return;
-  totalPoints += calcWeekPoints();
   weeks[currentWeekId()] = {};
   viewOffset = 0;
   persistAll();
@@ -1099,14 +1110,20 @@ async function init() {
   }
 
   // Migrate rewards to latest defaults if revision outdated
-  const REV = 2;
-  if (ls('th_rev', 0) < REV) {
+  const REV = 3;
+  const storedRev = ls('th_rev', 0);
+  if (storedRev < 2) {
     weeklyRewards = DEFAULT_WEEKLY_REWARDS.map(r=>({...r}));
     totalRewards  = DEFAULT_TOTAL_REWARDS.map(r=>({...r}));
     lsSet('th_wrew', weeklyRewards);
     lsSet('th_trew', totalRewards);
-    lsSet('th_rev', REV);
   }
+  if (storedRev < 3) {
+    // totalPoints now only stores manual offset; past weeks calculated dynamically
+    totalPoints = 0;
+    lsSet('th_pts', 0);
+  }
+  if (storedRev < REV) lsSet('th_rev', REV);
 
   fileHandle = await getHandle();
   if (fileHandle) {
