@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Toilet Hero</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Segoe UI', Arial, sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 12px;
+    transition: background 0.4s;
+  }
+
+  /* ── Widget shell ── */
+  .widget {
+    width: 100%;
+    max-width: 900px;
+    background: rgba(255,255,255,0.82);
+    backdrop-filter: blur(10px);
+    border-radius: 24px;
+    padding: 20px 20px 16px;
+    box-shadow: 0 6px 32px rgba(0,0,0,0.13);
+  }
+
+  /* ── Header ── */
+  .header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 18px;
+    gap: 10px;
+  }
+
+  #widgetTitle {
+    font-size: clamp(1.2rem, 4vw, 1.8rem);
+    font-weight: 800;
+    color: #5c35a0;
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .settings-btn {
+    background: #ede7f6;
+    border: none;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    font-size: 1.2rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: background 0.2s;
+  }
+  .settings-btn:hover { background: #d1c4e9; }
+
+  /* ── Table grid ── */
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 6px;
+    width: 100%;
+  }
+
+  .cell {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+  }
+
+  /* corner spacer */
+  .cell.corner { }
+
+  /* day header */
+  .day-header {
+    padding: 6px 4px;
+    border-radius: 12px;
+    text-align: center;
+    font-weight: 700;
+    font-size: clamp(0.6rem, 2vw, 0.85rem);
+    color: #555;
+    background: #f3f0fa;
+    width: 100%;
+  }
+  .day-header.today {
+    background: #7c4dff;
+    color: white;
+  }
+
+  /* row label */
+  .row-label {
+    font-size: clamp(1.2rem, 3vw, 1.6rem);
+    line-height: 1;
+    padding-right: 4px;
+    text-align: center;
+    width: 100%;
+  }
+
+  /* slot button */
+  .slot-btn {
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    border-radius: 14px;
+    border: 2.5px solid #e0e0e0;
+    background: #f9f9f9;
+    font-size: clamp(1.8rem, 5vw, 2.8rem);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.15s, background 0.2s, border-color 0.2s;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+    line-height: 1;
+    padding: 0;
+  }
+  .slot-btn:active { transform: scale(0.88); }
+
+  /* future */
+  .slot-btn.future {
+    opacity: 0.35;
+    pointer-events: none;
+  }
+
+  /* done states */
+  .slot-btn.done-s1 { background: #e8f5e9; border-color: #66bb6a; }
+  .slot-btn.done-s2 { background: #fff8e1; border-color: #ffca28; }
+  .slot-btn.done-s3 { background: #fce4ec; border-color: #ef9a9a; }
+
+  /* summary row */
+  .summary-row {
+    margin-top: 14px;
+    display: flex;
+    justify-content: center;
+    gap: 6px;
+    flex-wrap: wrap;
+    font-size: clamp(0.7rem, 2vw, 0.88rem);
+    color: #777;
+  }
+  .summary-chip {
+    background: #f3f0fa;
+    border-radius: 20px;
+    padding: 4px 12px;
+    font-weight: 600;
+  }
+
+  /* reset */
+  .reset-btn {
+    display: block;
+    margin: 14px auto 0;
+    padding: 8px 24px;
+    background: #ede7f6;
+    border: none;
+    border-radius: 30px;
+    color: #7c4dff;
+    font-size: 0.82rem;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  .reset-btn:active { transform: scale(0.96); }
+
+  /* ── Settings panel ── */
+  .settings-panel {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.4);
+    z-index: 200;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+  .settings-panel.open { display: flex; }
+
+  .settings-box {
+    background: white;
+    border-radius: 20px;
+    padding: 24px;
+    width: 100%;
+    max-width: 360px;
+    box-shadow: 0 8px 40px rgba(0,0,0,0.18);
+  }
+  .settings-box h2 {
+    font-size: 1.2rem;
+    color: #5c35a0;
+    margin-bottom: 18px;
+  }
+
+  .setting-row {
+    margin-bottom: 16px;
+  }
+  .setting-row label {
+    display: block;
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: #666;
+    margin-bottom: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .setting-row input[type="text"] {
+    width: 100%;
+    padding: 10px 14px;
+    border: 2px solid #e0e0e0;
+    border-radius: 12px;
+    font-size: 1rem;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .setting-row input[type="text"]:focus { border-color: #7c4dff; }
+
+  .bg-options {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 4px;
+  }
+  .bg-swatch {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    border: 3px solid transparent;
+    cursor: pointer;
+    transition: border-color 0.2s, transform 0.15s;
+  }
+  .bg-swatch:active { transform: scale(0.9); }
+  .bg-swatch.active { border-color: #7c4dff; }
+  .bg-swatch.transparent-swatch {
+    background: linear-gradient(135deg, #ccc 25%, transparent 25%, transparent 75%, #ccc 75%),
+                linear-gradient(135deg, #ccc 25%, white 25%, white 75%, #ccc 75%);
+    background-size: 12px 12px;
+    background-position: 0 0, 6px 6px;
+  }
+
+  .custom-color-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 8px;
+  }
+  .custom-color-row input[type="color"] {
+    width: 40px;
+    height: 36px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    padding: 0;
+    background: none;
+  }
+  .custom-color-row span {
+    font-size: 0.82rem;
+    color: #888;
+  }
+
+  .settings-close {
+    width: 100%;
+    padding: 12px;
+    background: #7c4dff;
+    color: white;
+    border: none;
+    border-radius: 14px;
+    font-size: 1rem;
+    font-weight: 700;
+    cursor: pointer;
+    margin-top: 6px;
+  }
+  .settings-close:active { opacity: 0.85; }
+
+  /* ── Overlays (celebration + confirm) ── */
+  .overlay {
+    visibility: hidden;
+    opacity: 0;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.45);
+    z-index: 300;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 14px;
+    transition: opacity 0.2s, visibility 0.2s;
+  }
+  .overlay.show { visibility: visible; opacity: 1; }
+  .celeb-emoji { font-size: 5rem; animation: bounce 0.6s infinite alternate; }
+  .celeb-msg { color: white; font-size: 1.6rem; font-weight: 800; text-align: center; text-shadow: 0 2px 8px rgba(0,0,0,0.4); }
+  .celeb-close { padding: 12px 36px; background: white; border: none; border-radius: 30px; font-size: 1rem; font-weight: 700; color: #7c4dff; cursor: pointer; margin-top: 4px; }
+  @keyframes bounce { from { transform: translateY(0) rotate(-5deg); } to { transform: translateY(-16px) rotate(5deg); } }
+
+  .confetti-piece {
+    position: fixed; width: 10px; height: 10px; border-radius: 2px;
+    animation: fall linear forwards; pointer-events: none; z-index: 299;
+  }
+  @keyframes fall {
+    0%   { top: -10px; opacity: 1; transform: rotate(0deg) translateX(0); }
+    100% { top: 110vh;  opacity: 0; transform: rotate(720deg) translateX(60px); }
+  }
+</style>
+</head>
+<body>
+
+<div class="widget">
+  <div class="header">
+    <div id="widgetTitle">🚽 Toilet Hero</div>
+    <button class="settings-btn" onclick="openSettings()" title="Réglages">⚙️</button>
+  </div>
+
+  <div class="grid" id="mainGrid"></div>
+
+  <div class="summary-row" id="summaryRow"></div>
+  <button class="reset-btn" onclick="confirmReset()">🔄 Nouvelle semaine</button>
+</div>
+
+<!-- Settings panel -->
+<div class="settings-panel" id="settingsPanel">
+  <div class="settings-box">
+    <h2>⚙️ Réglages</h2>
+
+    <div class="setting-row">
+      <label>Titre</label>
+      <input type="text" id="titleInput" placeholder="🚽 Héros des Toilettes" maxlength="40">
+    </div>
+
+    <div class="setting-row">
+      <label>Fond d'écran</label>
+      <div class="bg-options" id="bgSwatches"></div>
+      <div class="custom-color-row">
+        <input type="color" id="customColor" value="#e0f7fa">
+        <span>Couleur personnalisée</span>
+      </div>
+    </div>
+
+    <button class="settings-close" onclick="closeSettings()">Valider ✓</button>
+  </div>
+</div>
+
+<!-- Celebration -->
+<div id="celebration" class="overlay">
+  <div class="celeb-emoji" id="celebEmoji">⭐</div>
+  <div class="celeb-msg" id="celebMsg">Bravo !</div>
+  <button class="celeb-close" onclick="closeCelebration()">Super ! 🌟</button>
+</div>
+
+<!-- Custom confirm dialog -->
+<div id="confirmDialog" class="overlay" style="z-index:400">
+  <div style="background:white;border-radius:20px;padding:28px 24px;max-width:320px;width:90%;text-align:center;box-shadow:0 8px 40px rgba(0,0,0,0.2)">
+    <div style="font-size:2rem;margin-bottom:10px">🔄</div>
+    <div style="font-size:1.05rem;font-weight:700;color:#333;margin-bottom:6px">Nouvelle semaine ?</div>
+    <div style="font-size:0.88rem;color:#888;margin-bottom:22px">Toutes les données de cette semaine seront effacées.</div>
+    <div style="display:flex;gap:10px;justify-content:center">
+      <button onclick="doReset(false)" style="flex:1;padding:12px;border:2px solid #e0e0e0;border-radius:14px;background:white;font-size:0.95rem;font-weight:700;color:#888;cursor:pointer">Annuler</button>
+      <button onclick="doReset(true)"  style="flex:1;padding:12px;border:none;border-radius:14px;background:#7c4dff;font-size:0.95rem;font-weight:700;color:white;cursor:pointer">Oui, effacer</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const DAYS = ['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'];
+const DAY_FULL = ['Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi','Dimanche'];
+
+const SLOTS = [
+  { key: 'myself', idle: '🦸', done: '🏆', doneClass: 'done-s1', label: 'Tout seul' },
+  { key: 'parent', idle: '👋', done: '🌟', doneClass: 'done-s2', label: 'Sans rappel !' },
+  { key: 'dirty',  idle: '😬', done: '😓', doneClass: 'done-s3', label: 'Accident' },
+];
+
+const BG_PRESETS = [
+  { label: 'Transparent', value: 'transparent', cls: 'transparent-swatch' },
+  { label: 'Sky',    value: 'linear-gradient(135deg,#e0f7fa,#b3e5fc)' },
+  { label: 'Lavender', value: 'linear-gradient(135deg,#f3e5f5,#e8eaf6)' },
+  { label: 'Mint',   value: 'linear-gradient(135deg,#e8f5e9,#f1f8e9)' },
+  { label: 'Peach',  value: 'linear-gradient(135deg,#fff3e0,#fce4ec)' },
+  { label: 'Sun',    value: 'linear-gradient(135deg,#fffde7,#fff9c4)' },
+  { label: 'Night',  value: 'linear-gradient(135deg,#1a1a2e,#16213e)', dark: true },
+];
+
+const SWATCH_COLORS = ['transparent','#b3e5fc','#e8eaf6','#c8e6c9','#ffccbc','#fff9c4','#1a1a2e'];
+
+function getTodayIndex() {
+  const d = new Date().getDay();
+  return d === 0 ? 6 : d - 1;
+}
+
+function loadState() {
+  try { return JSON.parse(localStorage.getItem('toiletHero2') || '{}'); } catch(e) { return {}; }
+}
+function saveState() { localStorage.setItem('toiletHero2', JSON.stringify(state)); }
+function loadPrefs() {
+  try { return JSON.parse(localStorage.getItem('toiletHeroPrefs') || '{}'); } catch(e) { return {}; }
+}
+function savePrefs() { localStorage.setItem('toiletHeroPrefs', JSON.stringify(prefs)); }
+
+let state = loadState();
+let prefs = loadPrefs();
+const todayIdx = getTodayIndex();
+
+// ── Apply prefs ──
+function applyPrefs() {
+  document.getElementById('widgetTitle').textContent = prefs.title || '🚽 Toilet Hero';
+  const bg = prefs.bg || 'linear-gradient(135deg,#e0f7fa,#f3e5f5)';
+  document.body.style.background = bg === 'transparent' ? 'transparent' : bg;
+}
+
+// ── Render grid ──
+function render() {
+  const grid = document.getElementById('mainGrid');
+  grid.innerHTML = '';
+
+  // Day headers
+  DAYS.forEach((day, di) => {
+    const isToday = di === todayIdx;
+    const hdr = makeEl('div', 'cell');
+    const inner = makeEl('div', 'day-header' + (isToday ? ' today' : ''));
+    inner.innerHTML = `<div>${day}</div>`;
+    hdr.appendChild(inner);
+    grid.appendChild(hdr);
+  });
+
+  // Slot rows
+  SLOTS.forEach(slot => {
+
+    // Buttons
+    DAYS.forEach((_, di) => {
+      const isFuture = di > todayIdx;
+      const isDone = state[di] && state[di][slot.key];
+      const cell = makeEl('div', 'cell');
+      const btn = makeEl('button', 'slot-btn' + (isFuture ? ' future' : '') + (isDone ? ' ' + slot.doneClass : ''));
+      btn.textContent = isDone ? slot.done : slot.idle;
+      btn.setAttribute('aria-label', slot.label);
+      if (!isFuture) btn.addEventListener('click', () => handleTap(di, slot.key));
+      cell.appendChild(btn);
+      grid.appendChild(cell);
+    });
+  });
+
+  renderSummary();
+}
+
+function makeEl(tag, cls) {
+  const el = document.createElement(tag);
+  if (cls) el.className = cls;
+  return el;
+}
+
+function handleTap(di, slotKey) {
+  if (!state[di]) state[di] = {};
+  // Toggle
+  state[di][slotKey] = !state[di][slotKey];
+  saveState();
+  render();
+
+  // Celebrate if today got a positive slot checked for first time this session
+  if (di === todayIdx && (state[di].myself || state[di].parent)) {
+    const celebKey = `_celeb_${getWeekId()}`;
+    if (!state[celebKey]) {
+      state[celebKey] = true;
+      saveState();
+      triggerCelebration(false);
+    }
+  }
+
+  // Full week
+  const allDone = Array.from({length:7}, (_,i) => i).every(i => state[i] && (state[i].myself || state[i].parent));
+  const weekKey = `_weekceleb_${getWeekId()}`;
+  if (allDone && !state[weekKey]) {
+    state[weekKey] = true;
+    saveState();
+    setTimeout(() => triggerCelebration(true), 500);
+  }
+}
+
+function getWeekId() {
+  const now = new Date();
+  const start = new Date(now);
+  start.setDate(now.getDate() - getTodayIndex());
+  return start.toISOString().slice(0,10);
+}
+
+function renderSummary() {
+  const row = document.getElementById('summaryRow');
+  const myselfDays = Array.from({length:7},(_,i)=>i).filter(i=>state[i]&&state[i].myself).length;
+  const parentDays = Array.from({length:7},(_,i)=>i).filter(i=>state[i]&&state[i].parent).length;
+  const dirtyDays  = Array.from({length:7},(_,i)=>i).filter(i=>state[i]&&state[i].dirty).length;
+  row.innerHTML = '';
+  if (myselfDays) row.appendChild(chip(`🏆 ${myselfDays}× aux toilettes`));
+  if (parentDays) row.appendChild(chip(`🌟 ${parentDays}× tout seul`));
+  if (dirtyDays)  row.appendChild(chip(`😓 ${dirtyDays} accident${dirtyDays>1?'s':''}`));
+  if (!myselfDays && !parentDays) row.appendChild(chip('À toi de jouer héros ! 🚀'));
+}
+
+function chip(txt) {
+  const c = document.createElement('div');
+  c.className = 'summary-chip';
+  c.textContent = txt;
+  return c;
+}
+
+// ── Settings ──
+function openSettings() {
+  document.getElementById('titleInput').value = prefs.title || '';
+  buildSwatches();
+  document.getElementById('settingsPanel').classList.add('open');
+}
+
+function closeSettings() {
+  prefs.title = document.getElementById('titleInput').value.trim() || '🚽 Toilet Hero';
+  savePrefs();
+  applyPrefs();
+  document.getElementById('settingsPanel').classList.remove('open');
+}
+
+function buildSwatches() {
+  const container = document.getElementById('bgSwatches');
+  container.innerHTML = '';
+  BG_PRESETS.forEach((preset, i) => {
+    const sw = document.createElement('div');
+    sw.className = 'bg-swatch' + (preset.cls ? ' ' + preset.cls : '') + (prefs.bg === preset.value ? ' active' : '');
+    if (!preset.cls) sw.style.background = preset.value;
+    sw.title = preset.label;
+    sw.addEventListener('click', () => {
+      prefs.bg = preset.value;
+      savePrefs();
+      applyPrefs();
+      buildSwatches();
+    });
+    container.appendChild(sw);
+  });
+
+  document.getElementById('customColor').addEventListener('input', function() {
+    prefs.bg = this.value;
+    savePrefs();
+    applyPrefs();
+    // deselect presets
+    container.querySelectorAll('.bg-swatch').forEach(s => s.classList.remove('active'));
+  });
+}
+
+// ── Reset ──
+function confirmReset() {
+  document.getElementById('confirmDialog').classList.add('show');
+}
+function doReset(yes) {
+  document.getElementById('confirmDialog').classList.remove('show');
+  if (yes) {
+    localStorage.removeItem('toiletHero2');
+    state = {};
+    render();
+  }
+}
+
+// ── Celebration ──
+function triggerCelebration(isWeek) {
+  spawnConfetti(isWeek ? 90 : 35);
+  document.getElementById('celebEmoji').textContent = isWeek ? '🏆' : '⭐';
+  document.getElementById('celebMsg').textContent = isWeek ? 'HÉROS DE LA SEMAINE ! 🎊' : 'Bravo aujourd\'hui ! 🌟';
+  document.getElementById('celebration').classList.add('show');
+}
+function closeCelebration() {
+  document.getElementById('celebration').classList.remove('show');
+}
+
+function spawnConfetti(n) {
+  const colors = ['#ff6b6b','#ffd93d','#6bcb77','#4d96ff','#c77dff','#ff9f1c'];
+  for (let i = 0; i < n; i++) {
+    const el = document.createElement('div');
+    el.className = 'confetti-piece';
+    el.style.cssText = `left:${Math.random()*100}vw;background:${colors[~~(Math.random()*colors.length)]};animation-duration:${1.5+Math.random()*2}s;animation-delay:${Math.random()*0.8}s`;
+    document.body.appendChild(el);
+    el.addEventListener('animationend', () => el.remove());
+  }
+}
+
+applyPrefs();
+render();
+</script>
+</body>
+</html>
