@@ -342,6 +342,15 @@
       </div>
     </div>
 
+    <div class="setting-row">
+      <label>Fichier de sauvegarde</label>
+      <div id="fileStatusBox" style="font-size:0.82rem;padding:8px 12px;border-radius:10px;background:#f5f5f5;color:#888;margin-bottom:8px">Aucun fichier sélectionné</div>
+      <div style="display:flex;gap:8px">
+        <button onclick="openSaveFile()" style="flex:1;padding:11px 8px;border:2px solid #c5b4f0;border-radius:12px;background:#faf5ff;color:#7c4dff;font-size:0.88rem;font-weight:700;cursor:pointer">📂 Ouvrir</button>
+        <button onclick="createSaveFile()" style="flex:1;padding:11px 8px;border:2px solid #c5b4f0;border-radius:12px;background:#faf5ff;color:#7c4dff;font-size:0.88rem;font-weight:700;cursor:pointer">💾 Créer</button>
+      </div>
+    </div>
+
     <button class="settings-close" onclick="closeSettings()">Valider ✓</button>
   </div>
 </div>
@@ -396,7 +405,10 @@ function getTodayIndex() {
 function loadState() {
   try { return JSON.parse(localStorage.getItem('toiletHero2') || '{}'); } catch(e) { return {}; }
 }
-function saveState() { localStorage.setItem('toiletHero2', JSON.stringify(state)); }
+function saveState() {
+  localStorage.setItem('toiletHero2', JSON.stringify(state));
+  saveToFile();
+}
 function loadPrefs() {
   try { return JSON.parse(localStorage.getItem('toiletHeroPrefs') || '{}'); } catch(e) { return {}; }
 }
@@ -409,7 +421,7 @@ const todayIdx = getTodayIndex();
 // ── Apply prefs ──
 function applyPrefs() {
   document.getElementById('widgetTitle').textContent = prefs.title || '🚽 Toilet Hero';
-  const bg = prefs.bg || 'linear-gradient(135deg,#e0f7fa,#f3e5f5)';
+  const bg = prefs.bg || 'transparent';
   document.body.style.background = bg === 'transparent' ? 'transparent' : bg;
 }
 
@@ -582,8 +594,108 @@ function spawnConfetti(n) {
   }
 }
 
+// ── File System persistence (IndexedDB stores the handle) ──
+let fileHandle = null;
+
+function openDB() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open('toiletHeroDB', 1);
+    req.onupgradeneeded = e => e.target.result.createObjectStore('handles');
+    req.onsuccess = e => resolve(e.target.result);
+    req.onerror = reject;
+  });
+}
+async function storeHandle(h) {
+  const db = await openDB();
+  return new Promise((res, rej) => {
+    const tx = db.transaction('handles', 'readwrite');
+    tx.objectStore('handles').put(h, 'save');
+    tx.oncomplete = res; tx.onerror = rej;
+  });
+}
+async function getHandle() {
+  try {
+    const db = await openDB();
+    return new Promise(res => {
+      const req = db.transaction('handles','readonly').objectStore('handles').get('save');
+      req.onsuccess = e => res(e.target.result || null);
+      req.onerror = () => res(null);
+    });
+  } catch(e) { return null; }
+}
+
+async function saveToFile() {
+  if (!fileHandle) return;
+  try {
+    const w = await fileHandle.createWritable();
+    await w.write(JSON.stringify(state));
+    await w.close();
+  } catch(e) {}
+}
+
+async function loadFromFile() {
+  if (!fileHandle) return false;
+  try {
+    const text = await (await fileHandle.getFile()).text();
+    const data = JSON.parse(text);
+    if (data && Object.keys(data).length > 0) {
+      state = data;
+      localStorage.setItem('toiletHero2', JSON.stringify(state));
+      return true;
+    }
+  } catch(e) {}
+  return false;
+}
+
+function setFileStatus(msg) {
+  const el = document.getElementById('fileStatusBox');
+  if (el) el.innerHTML = msg;
+}
+
+async function openSaveFile() {
+  try {
+    [fileHandle] = await window.showOpenFilePicker({
+      types: [{ description: 'JSON', accept: { 'application/json': ['.json'] } }],
+      multiple: false
+    });
+    await storeHandle(fileHandle);
+    await loadFromFile();
+    setFileStatus(`✅ <b>${fileHandle.name}</b> — sauvegarde automatique active`);
+    render();
+  } catch(e) {}
+}
+
+async function createSaveFile() {
+  try {
+    fileHandle = await window.showSaveFilePicker({
+      suggestedName: 'toiletHero_save.json',
+      types: [{ description: 'JSON', accept: { 'application/json': ['.json'] } }]
+    });
+    await storeHandle(fileHandle);
+    await saveToFile();
+    setFileStatus(`✅ <b>${fileHandle.name}</b> — sauvegarde automatique active`);
+  } catch(e) {}
+}
+
+async function init() {
+  fileHandle = await getHandle();
+  if (fileHandle) {
+    const perm = await fileHandle.queryPermission({ mode: 'readwrite' });
+    if (perm === 'granted') {
+      const ok = await loadFromFile();
+      setFileStatus(`✅ <b>${fileHandle.name}</b> — sauvegarde automatique active`);
+      if (ok) { render(); return; }
+    } else {
+      // Permission lost after restart — prompt user via settings button
+      setFileStatus(`⚠️ <b>${fileHandle.name}</b> — cliquez "Reconnecter" pour restaurer`);
+      document.getElementById('filePickBtn').textContent = '🔄 Reconnecter ' + fileHandle.name;
+    }
+  }
+  render();
+}
+
 applyPrefs();
-render();
+init();
 </script>
 </body>
 </html>
