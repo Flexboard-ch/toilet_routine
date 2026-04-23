@@ -1,0 +1,1124 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Héros des Toilettes v2</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'Segoe UI', Arial, sans-serif;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 12px;
+  transition: background 0.4s;
+}
+
+/* ── Widget ── */
+.widget {
+  width: 100%;
+  max-width: 900px;
+  background: rgba(255,255,255,0.85);
+  backdrop-filter: blur(10px);
+  border-radius: 24px;
+  padding: 20px 20px 16px;
+  box-shadow: 0 6px 32px rgba(0,0,0,0.13);
+}
+
+/* ── Header ── */
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 18px;
+  gap: 10px;
+}
+#widgetTitle {
+  font-size: clamp(1.2rem, 4vw, 1.8rem);
+  font-weight: 800;
+  color: #5c35a0;
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.settings-btn {
+  background: #ede7f6;
+  border: none;
+  border-radius: 50%;
+  width: 42px; height: 42px;
+  font-size: 1.2rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background 0.2s;
+}
+.settings-btn:hover { background: #d1c4e9; }
+
+/* ── Grid ── */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
+  width: 100%;
+}
+.cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+}
+.day-header {
+  padding: 6px 4px;
+  border-radius: 12px;
+  text-align: center;
+  font-weight: 700;
+  font-size: clamp(0.6rem, 2vw, 0.85rem);
+  color: #555;
+  background: #f3f0fa;
+  width: 100%;
+}
+.day-header.today { background: #7c4dff; color: white; }
+
+.slot-btn {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  border-radius: 14px;
+  border: 2.5px solid #e0e0e0;
+  background: #f9f9f9;
+  font-size: clamp(1.8rem, 5vw, 2.8rem);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.15s, background 0.2s, border-color 0.2s;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  padding: 0;
+}
+.slot-btn:active { transform: scale(0.88); }
+.slot-btn.future { opacity: 0.35; pointer-events: none; }
+.slot-btn.done-s1 { background: #e8f5e9; border-color: #66bb6a; }
+.slot-btn.done-s2 { background: #fff8e1; border-color: #ffca28; }
+.slot-btn.done-s3 { background: #fce4ec; border-color: #ef9a9a; }
+
+/* ── Footer ── */
+.footer {
+  margin-top: 14px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+@media (max-width: 480px) { .footer { grid-template-columns: 1fr; } }
+
+.footer-card {
+  background: #f3f0fa;
+  border-radius: 16px;
+  padding: 12px 14px;
+}
+.footer-card-title {
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #9e7fe0;
+  margin-bottom: 6px;
+}
+.pts-big {
+  font-size: clamp(1rem, 3vw, 1.3rem);
+  font-weight: 800;
+  color: #5c35a0;
+  margin-bottom: 4px;
+}
+.next-reward-label {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #7c4dff;
+  margin-bottom: 6px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.pts-remaining {
+  font-size: 0.72rem;
+  color: #aaa;
+  margin-bottom: 6px;
+}
+.progress-wrap {
+  height: 8px;
+  background: #e0d7f7;
+  border-radius: 10px;
+  overflow: hidden;
+}
+.progress-fill {
+  height: 100%;
+  border-radius: 10px;
+  transition: width 0.4s ease;
+}
+.progress-fill.weekly { background: linear-gradient(90deg, #43a047, #66bb6a); }
+.progress-fill.total  { background: linear-gradient(90deg, #7c4dff, #b39ddb); }
+
+/* ── Week nav ── */
+.week-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+  gap: 8px;
+}
+.nav-arrow {
+  background: #ede7f6;
+  border: none;
+  border-radius: 50%;
+  width: 36px; height: 36px;
+  font-size: 1.1rem;
+  color: #7c4dff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background 0.15s;
+}
+.nav-arrow:hover { background: #d1c4e9; }
+.nav-arrow:disabled { opacity: 0.25; pointer-events: none; }
+.week-label {
+  flex: 1;
+  text-align: center;
+  font-size: clamp(0.72rem, 2vw, 0.88rem);
+  font-weight: 700;
+  color: #5c35a0;
+}
+.week-label.past { color: #9e7fe0; }
+
+/* ── Reset btn ── */
+.reset-btn {
+  display: block;
+  margin: 12px auto 0;
+  padding: 8px 24px;
+  background: #ede7f6;
+  border: none;
+  border-radius: 30px;
+  color: #7c4dff;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+.reset-btn:active { transform: scale(0.96); }
+
+/* ── PIN overlay ── */
+.overlay {
+  visibility: hidden; opacity: 0;
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.5);
+  z-index: 300;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 14px;
+  transition: opacity 0.2s, visibility 0.2s;
+}
+.overlay.show { visibility: visible; opacity: 1; }
+
+.pin-box {
+  background: white;
+  border-radius: 24px;
+  padding: 28px 24px 24px;
+  width: 280px;
+  text-align: center;
+  box-shadow: 0 8px 40px rgba(0,0,0,0.2);
+}
+.pin-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #5c35a0;
+  margin-bottom: 16px;
+}
+.pin-dots {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.pin-dot {
+  width: 16px; height: 16px;
+  border-radius: 50%;
+  border: 2px solid #c5b4f0;
+  background: white;
+  transition: background 0.15s;
+}
+.pin-dot.filled { background: #7c4dff; border-color: #7c4dff; }
+.pin-dot.error  { background: #ef5350; border-color: #ef5350; }
+.pin-pad {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+.pin-key {
+  padding: 14px;
+  border: none;
+  border-radius: 14px;
+  background: #f3f0fa;
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #5c35a0;
+  cursor: pointer;
+  transition: background 0.15s, transform 0.1s;
+}
+.pin-key:active { background: #d1c4e9; transform: scale(0.92); }
+.pin-key.del { background: #fce4ec; color: #c62828; }
+.pin-key.cancel { background: #f5f5f5; color: #888; font-size: 0.85rem; }
+@keyframes shake {
+  0%,100% { transform: translateX(0); }
+  20%,60%  { transform: translateX(-8px); }
+  40%,80%  { transform: translateX(8px); }
+}
+.pin-box.shake { animation: shake 0.4s ease; }
+
+/* ── Settings ── */
+.settings-panel {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.4);
+  z-index: 400;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 20px;
+  overflow-y: auto;
+}
+.settings-panel.open { display: flex; }
+.settings-box {
+  background: white;
+  border-radius: 20px;
+  padding: 24px;
+  width: 100%;
+  max-width: 420px;
+  box-shadow: 0 8px 40px rgba(0,0,0,0.18);
+  margin: auto;
+}
+.settings-box h2 { font-size: 1.2rem; color: #5c35a0; margin-bottom: 4px; display: flex; align-items: center; justify-content: space-between; }
+.settings-x { background: #f3f0fa; border: none; border-radius: 50%; width: 32px; height: 32px; font-size: 1.1rem; cursor: pointer; display: flex; align-items: center; justify-content: center; color: #9e7fe0; flex-shrink: 0; }
+.settings-x:hover { background: #e8e0f7; }
+.s-section {
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid #f0f0f0;
+}
+.s-section h3 {
+  font-size: 0.78rem;
+  font-weight: 800;
+  color: #9e7fe0;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 10px;
+}
+.s-row { margin-bottom: 10px; }
+.s-row label {
+  display: block;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #888;
+  margin-bottom: 5px;
+}
+.s-input {
+  width: 100%;
+  padding: 9px 13px;
+  border: 2px solid #e0e0e0;
+  border-radius: 12px;
+  font-size: 0.95rem;
+  outline: none;
+}
+.s-input:focus { border-color: #7c4dff; }
+
+/* bg swatches */
+.bg-options { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 8px; }
+.bg-swatch {
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  border: 3px solid transparent;
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+.bg-swatch.active { border-color: #7c4dff; }
+.bg-swatch.transparent-swatch {
+  background: linear-gradient(135deg,#ccc 25%,transparent 25%,transparent 75%,#ccc 75%),
+              linear-gradient(135deg,#ccc 25%,white 25%,white 75%,#ccc 75%);
+  background-size: 10px 10px;
+  background-position: 0 0, 5px 5px;
+}
+.custom-color-row { display: flex; align-items: center; gap: 8px; }
+.custom-color-row input[type="color"] { width: 36px; height: 32px; border: none; border-radius: 8px; cursor: pointer; padding: 0; }
+.custom-color-row span { font-size: 0.8rem; color: #888; }
+
+/* Points */
+.pts-display-big { text-align: center; font-size: 1.3rem; font-weight: 800; color: #5c35a0; margin-bottom: 10px; }
+.pts-row { display: flex; gap: 8px; margin-bottom: 8px; align-items: center; }
+.pts-row input[type="number"] {
+  flex: 1;
+  padding: 9px 12px;
+  border: 2px solid #e0e0e0;
+  border-radius: 12px;
+  font-size: 1rem;
+  text-align: center;
+  outline: none;
+}
+.pts-row input:focus { border-color: #7c4dff; }
+.btn { padding: 9px 16px; border: none; border-radius: 12px; font-size: 0.85rem; font-weight: 700; cursor: pointer; }
+.btn-purple { background: #7c4dff; color: white; }
+.btn-red    { background: #fce4ec; color: #c62828; }
+.btn-full   { width: 100%; }
+
+/* Rewards list */
+.reward-row { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; }
+.reward-row input[type="text"]   { flex: 2; padding: 8px 10px; border: 2px solid #e0e0e0; border-radius: 10px; font-size: 0.85rem; outline: none; }
+.reward-row input[type="text"]:focus { border-color: #7c4dff; }
+.reward-row input[type="number"] { flex: 0 0 62px; padding: 8px 6px; border: 2px solid #e0e0e0; border-radius: 10px; font-size: 0.85rem; text-align: center; outline: none; }
+.reward-row input[type="number"]:focus { border-color: #7c4dff; }
+.reward-row .r-type { flex: 0 0 70px; padding: 8px 4px; border: 2px solid #e0e0e0; border-radius: 10px; font-size: 0.78rem; text-align: center; background: white; outline: none; cursor: pointer; }
+.reward-row .r-type:focus { border-color: #7c4dff; }
+.btn-del { flex-shrink: 0; width: 28px; height: 28px; border: none; border-radius: 8px; background: #fce4ec; color: #c62828; font-size: 1rem; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+.btn-add { width: 100%; padding: 9px; border: 2px dashed #c5b4f0; border-radius: 12px; background: #faf5ff; color: #7c4dff; font-size: 0.88rem; font-weight: 700; cursor: pointer; margin-top: 4px; }
+.r-type-label { font-size: 0.65rem; color: #aaa; text-align: center; margin-top: -4px; margin-bottom: 2px; }
+
+/* File */
+#fileStatusBox { font-size: 0.8rem; padding: 7px 10px; border-radius: 10px; background: #f5f5f5; color: #888; margin-bottom: 8px; }
+
+/* Settings close */
+.settings-close {
+  width: 100%;
+  padding: 12px;
+  background: #7c4dff;
+  color: white;
+  border: none;
+  border-radius: 14px;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  margin-top: 16px;
+}
+.settings-close:active { opacity: 0.85; }
+
+/* ── Celebration ── */
+.celeb-emoji { font-size: 5rem; animation: bounce 0.6s infinite alternate; }
+.celeb-msg   { color: white; font-size: 1.4rem; font-weight: 800; text-align: center; text-shadow: 0 2px 8px rgba(0,0,0,0.4); padding: 0 20px; white-space: pre-line; }
+.celeb-close { padding: 12px 36px; background: white; border: none; border-radius: 30px; font-size: 1rem; font-weight: 700; color: #7c4dff; cursor: pointer; }
+@keyframes bounce { from { transform: translateY(0) rotate(-5deg); } to { transform: translateY(-16px) rotate(5deg); } }
+
+.confetti-piece { position: fixed; width: 10px; height: 10px; border-radius: 2px; animation: fall linear forwards; pointer-events: none; z-index: 299; }
+@keyframes fall {
+  0%   { top: -10px; opacity: 1; transform: rotate(0deg) translateX(0); }
+  100% { top: 110vh; opacity: 0; transform: rotate(720deg) translateX(60px); }
+}
+
+/* ── Confirm dialog ── */
+.confirm-box {
+  background: white;
+  border-radius: 20px;
+  padding: 28px 24px;
+  max-width: 320px;
+  width: 90%;
+  text-align: center;
+  box-shadow: 0 8px 40px rgba(0,0,0,0.2);
+}
+.confirm-box .c-icon  { font-size: 2rem; margin-bottom: 10px; }
+.confirm-box .c-title { font-size: 1.05rem; font-weight: 700; color: #333; margin-bottom: 6px; }
+.confirm-box .c-sub   { font-size: 0.88rem; color: #888; margin-bottom: 22px; }
+.confirm-box .c-btns  { display: flex; gap: 10px; }
+.confirm-box .c-btns button { flex: 1; padding: 12px; border-radius: 14px; font-size: 0.95rem; font-weight: 700; cursor: pointer; border: none; }
+.c-cancel { border: 2px solid #e0e0e0 !important; background: white !important; color: #888 !important; }
+.c-ok     { background: #7c4dff; color: white; }
+.c-ok-red { background: #ef5350; color: white; }
+</style>
+</head>
+<body>
+
+<div class="widget">
+  <div class="header">
+    <div id="widgetTitle">🚽 Héros des Toilettes</div>
+    <button class="settings-btn" id="settingsBtn" title="Réglages">⚙️</button>
+  </div>
+  <div class="week-nav" id="weekNav">
+    <button class="nav-arrow" id="navPrev" onclick="navigate(-1)">&#8592;</button>
+    <div class="week-label" id="weekLabel"></div>
+    <button class="nav-arrow" id="navNext" onclick="navigate(1)">&#8594;</button>
+    <button class="nav-arrow" id="navLock" onclick="requestPastUnlock()" title="Modifier cette semaine" style="display:none">🔒</button>
+  </div>
+  <div class="grid" id="mainGrid"></div>
+  <div class="footer" id="footer"></div>
+  <button class="reset-btn" onclick="confirmReset()">🔄 Nouvelle semaine</button>
+</div>
+
+
+<!-- PIN overlay -->
+<div id="pinOverlay" class="overlay">
+  <div class="pin-box" id="pinBox">
+    <div class="pin-title">🔒 Code parental</div>
+    <div class="pin-dots" id="pinDots">
+      <div class="pin-dot" id="d0"></div>
+      <div class="pin-dot" id="d1"></div>
+      <div class="pin-dot" id="d2"></div>
+      <div class="pin-dot" id="d3"></div>
+    </div>
+    <div class="pin-pad">
+      <button class="pin-key" onclick="pinKey('1')">1</button>
+      <button class="pin-key" onclick="pinKey('2')">2</button>
+      <button class="pin-key" onclick="pinKey('3')">3</button>
+      <button class="pin-key" onclick="pinKey('4')">4</button>
+      <button class="pin-key" onclick="pinKey('5')">5</button>
+      <button class="pin-key" onclick="pinKey('6')">6</button>
+      <button class="pin-key" onclick="pinKey('7')">7</button>
+      <button class="pin-key" onclick="pinKey('8')">8</button>
+      <button class="pin-key" onclick="pinKey('9')">9</button>
+      <button class="pin-key cancel" onclick="closePin()">Annuler</button>
+      <button class="pin-key" onclick="pinKey('0')">0</button>
+      <button class="pin-key del" onclick="pinDel()">⌫</button>
+    </div>
+  </div>
+</div>
+
+<!-- Settings panel -->
+<div class="settings-panel" id="settingsPanel">
+  <div class="settings-box">
+    <h2>⚙️ Réglages <button class="settings-x" onclick="cancelSettings()" title="Fermer sans sauvegarder">✕</button></h2>
+
+    <!-- Title -->
+    <div class="s-section">
+      <h3>Titre</h3>
+      <input type="text" class="s-input" id="titleInput" placeholder="🚽 Héros des Toilettes" maxlength="40">
+    </div>
+
+    <!-- Background -->
+    <div class="s-section">
+      <h3>Fond d'écran</h3>
+      <div class="bg-options" id="bgSwatches"></div>
+      <div class="custom-color-row">
+        <input type="color" id="customColor" value="#e0f7fa">
+        <span>Couleur personnalisée</span>
+      </div>
+    </div>
+
+    <!-- Points -->
+    <div class="s-section">
+      <h3>Points</h3>
+      <div class="pts-display-big" id="settingsPtsDisplay">Total : 0 pts</div>
+      <div class="pts-row">
+        <input type="number" id="ptsAdjust" value="0" placeholder="Nouveau total">
+        <button class="btn btn-purple" onclick="applyPtsAdjust()">Définir</button>
+      </div>
+      <button class="btn btn-red btn-full" onclick="confirmResetPoints()">Remettre à zéro les points</button>
+    </div>
+
+    <!-- Weekly rewards -->
+    <div class="s-section">
+      <h3>Récompenses hebdomadaires 🗓️</h3>
+      <p style="font-size:0.75rem;color:#aaa;margin-bottom:8px">Basées sur les points de la semaine en cours. Se remettent à zéro chaque semaine.</p>
+      <div id="weeklyRewardsList"></div>
+      <button class="btn-add" onclick="addReward('weekly')">+ Ajouter</button>
+    </div>
+
+    <!-- Total rewards -->
+    <div class="s-section">
+      <h3>Récompenses totales 🏅</h3>
+      <p style="font-size:0.75rem;color:#aaa;margin-bottom:8px">Basées sur le total cumulé de tous les temps. Ne se remettent jamais à zéro.</p>
+      <div id="totalRewardsList"></div>
+      <button class="btn-add" onclick="addReward('total')">+ Ajouter</button>
+    </div>
+
+    <!-- PIN -->
+    <div class="s-section">
+      <h3>Code PIN réglages</h3>
+      <div class="s-row">
+        <label>Nouveau code (4 chiffres)</label>
+        <input type="number" class="s-input" id="newPinInput" placeholder="ex: 7789" maxlength="4">
+      </div>
+      <button class="btn btn-purple btn-full" onclick="savePin()">Changer le code</button>
+    </div>
+
+    <!-- File -->
+    <div class="s-section">
+      <h3>Fichier de sauvegarde</h3>
+      <div id="fileStatusBox">Aucun fichier sélectionné</div>
+      <div style="display:flex;gap:8px">
+        <button onclick="openSaveFile()"   style="flex:1;padding:10px;border:2px solid #c5b4f0;border-radius:12px;background:#faf5ff;color:#7c4dff;font-size:0.85rem;font-weight:700;cursor:pointer">📂 Ouvrir</button>
+        <button onclick="createSaveFile()" style="flex:1;padding:10px;border:2px solid #c5b4f0;border-radius:12px;background:#faf5ff;color:#7c4dff;font-size:0.85rem;font-weight:700;cursor:pointer">💾 Créer</button>
+      </div>
+    </div>
+
+    <button class="settings-close" onclick="closeSettings()">Valider ✓</button>
+  </div>
+</div>
+
+<!-- Celebration -->
+<div id="celebration" class="overlay" style="z-index:500">
+  <div class="celeb-emoji" id="celebEmoji">⭐</div>
+  <div class="celeb-msg"   id="celebMsg">Bravo !</div>
+  <button class="celeb-close" onclick="closeCelebration()">Super ! 🌟</button>
+</div>
+
+<!-- Confirm new week -->
+<div id="confirmDialog" class="overlay" style="z-index:500">
+  <div class="confirm-box">
+    <div class="c-icon">🔄</div>
+    <div class="c-title">Nouvelle semaine ?</div>
+    <div class="c-sub">Les points de la semaine seront ajoutés au total, puis la grille sera effacée.</div>
+    <div class="c-btns">
+      <button class="c-cancel" onclick="doReset(false)">Annuler</button>
+      <button class="c-ok"     onclick="doReset(true)">Oui !</button>
+    </div>
+  </div>
+</div>
+
+<!-- Confirm reset points -->
+<div id="confirmResetPtsDialog" class="overlay" style="z-index:500">
+  <div class="confirm-box">
+    <div class="c-icon">🗑️</div>
+    <div class="c-title">Remettre à zéro ?</div>
+    <div class="c-sub">Tous les points accumulés seront effacés.</div>
+    <div class="c-btns">
+      <button class="c-cancel" onclick="doResetPoints(false)">Annuler</button>
+      <button class="c-ok-red" onclick="doResetPoints(true)">Effacer</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── Constants ──
+const DAYS  = ['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'];
+const SLOTS = [
+  { key:'myself', idle:'🦸', done:'🏆', doneClass:'done-s1', label:'Aux toilettes' },
+  { key:'parent', idle:'👋', done:'🌟', doneClass:'done-s2', label:'Sans rappel'   },
+  { key:'dirty',  idle:'😬', done:'😓', doneClass:'done-s3', label:'Accident'      },
+];
+const BG_PRESETS = [
+  { label:'Transparent', value:'transparent',                               cls:'transparent-swatch' },
+  { label:'Ciel',        value:'linear-gradient(135deg,#e0f7fa,#b3e5fc)'  },
+  { label:'Lavande',     value:'linear-gradient(135deg,#f3e5f5,#e8eaf6)'  },
+  { label:'Menthe',      value:'linear-gradient(135deg,#e8f5e9,#f1f8e9)'  },
+  { label:'Pêche',       value:'linear-gradient(135deg,#fff3e0,#fce4ec)'  },
+  { label:'Soleil',      value:'linear-gradient(135deg,#fffde7,#fff9c4)'  },
+  { label:'Nuit',        value:'linear-gradient(135deg,#1a1a2e,#16213e)'  },
+];
+const DEFAULT_WEEKLY_REWARDS = [
+  { label:'🎮 15 min gaming', threshold:4  },
+  { label:'🎮 30 min gaming', threshold:7  },
+  { label:'🎮 45 min gaming', threshold:11 },
+  { label:'🎮 60 min gaming', threshold:16 },
+];
+const DEFAULT_TOTAL_REWARDS = [
+  { label:'🎬 Film en soirée', threshold:60  },
+  { label:'🍿 Cinéma',         threshold:100 },
+  { label:'🛌 Ami à dormir',   threshold:160 },
+];
+
+// ── Storage helpers ──
+function ls(key, fallback) {
+  try { const v = localStorage.getItem(key); return v !== null ? JSON.parse(v) : fallback; }
+  catch(e) { return fallback; }
+}
+function lsSet(key, val) { localStorage.setItem(key, JSON.stringify(val)); }
+
+// ── Week helpers ──
+const todayIdx = (() => { const d=new Date().getDay(); return d===0?6:d-1; })();
+
+function weekStart(offset=0) {
+  const d = new Date();
+  d.setDate(d.getDate() - todayIdx + offset*7);
+  d.setHours(0,0,0,0);
+  return d.toISOString().slice(0,10);
+}
+
+function formatWeekLabel(offset) {
+  const [y,m,d] = weekStart(offset).split('-').map(Number);
+  const mon = new Date(y, m-1, d);
+  const sun = new Date(y, m-1, d+6);
+  const fmt = dt => dt.toLocaleDateString('fr-FR',{day:'numeric',month:'short'});
+  const range = `Lun. ${fmt(mon)} — Dim. ${fmt(sun)}`;
+  return offset===0 ? `✨ ${range}` : range;
+}
+
+// ── App state ──
+let weeks         = ls('th_weeks',  {});
+let totalPoints   = ls('th_pts',    0);
+let weeklyRewards = ls('th_wrew',   null) || DEFAULT_WEEKLY_REWARDS.map(r=>({...r}));
+let totalRewards  = ls('th_trew',   null) || DEFAULT_TOTAL_REWARDS.map(r=>({...r}));
+let prefs         = ls('th_prefs',  {});
+let pin           = ls('th_pin',    '7789');
+let viewOffset    = 0;
+let pastUnlocked  = false;
+let pinCallback   = null;
+
+function currentWeekId() { return weekStart(0); }
+function viewedWeekId()  { return weekStart(viewOffset); }
+function currentState()  { return weeks[currentWeekId()] || {}; }
+function viewedState()   { return weeks[viewedWeekId()]  || {}; }
+
+function persistAll() {
+  lsSet('th_weeks', weeks);
+  lsSet('th_pts',   totalPoints);
+  lsSet('th_wrew',  weeklyRewards);
+  lsSet('th_trew',  totalRewards);
+  saveToFile();
+}
+
+// ── Points (recalculated from scratch — unchecking removes points) ──
+// Aux toilettes: +2 | Sans rappel (bonus): +1 | Accident: −1 (plancher 0/jour) | Semaine 7/7: +5
+function calcWeekPoints(data) {
+  const s = data || currentState();
+  let pts = 0;
+  for (let d=0; d<7; d++) {
+    const day = s[d]; if (!day) continue;
+    let dayPts = 0;
+    if (day.myself) dayPts += 1;
+    if (day.parent) dayPts += 2;
+    if (day.dirty)  dayPts -= 1;
+    pts += Math.max(0, dayPts);
+  }
+  if (Array.from({length:7},(_,i)=>i).every(i => s[i] && s[i].parent)) pts += 5;
+  return pts;
+}
+function grandTotal() { return totalPoints + calcWeekPoints(); }
+
+function nextRewardFor(list, v) { return list.slice().sort((a,b)=>a.threshold-b.threshold).find(r=>r.threshold>v)||null; }
+function prevThresholdFor(list, v) { const p=list.slice().sort((a,b)=>a.threshold-b.threshold).filter(r=>r.threshold<=v); return p.length?p[p.length-1].threshold:0; }
+
+// ── Navigation ──
+function navigate(dir) {
+  if (viewOffset + dir > 0) return;
+  viewOffset += dir;
+  pastUnlocked = false;
+  render();
+}
+
+// ── Render ──
+function render() {
+  const isPast  = viewOffset < 0;
+  const vState  = viewedState();
+
+  // Nav
+  const lbl = document.getElementById('weekLabel');
+  lbl.textContent = formatWeekLabel(viewOffset);
+  lbl.className = 'week-label' + (isPast ? ' past' : '');
+  document.getElementById('navNext').disabled = viewOffset >= 0;
+  const lockBtn = document.getElementById('navLock');
+  lockBtn.style.display = isPast ? 'flex' : 'none';
+  lockBtn.textContent = (isPast && pastUnlocked) ? '🔓' : '🔒';
+
+  // Grid
+  const grid = document.getElementById('mainGrid');
+  grid.innerHTML = '';
+  DAYS.forEach((day, di) => {
+    const hdr = mk('div','cell');
+    const inner = mk('div','day-header'+((!isPast && di===todayIdx)?' today':''));
+    inner.textContent = day;
+    hdr.appendChild(inner);
+    grid.appendChild(hdr);
+  });
+  SLOTS.forEach(slot => {
+    DAYS.forEach((_,di) => {
+      const inactive = (isPast && !pastUnlocked) || (!isPast && di > todayIdx);
+      const done = vState[di] && vState[di][slot.key];
+      const cell = mk('div','cell');
+      const btn  = mk('button','slot-btn'+(inactive?' future':'')+(done?' '+slot.doneClass:''));
+      btn.textContent = done ? slot.done : slot.idle;
+      if (!inactive) btn.addEventListener('click', () => handleTap(di, slot.key));
+      cell.appendChild(btn);
+      grid.appendChild(cell);
+    });
+  });
+  renderFooter();
+}
+
+function mk(tag, cls) { const e=document.createElement(tag); if(cls) e.className=cls; return e; }
+
+// ── Footer ──
+function renderFooter() {
+  const isPast = viewOffset < 0;
+  const week   = calcWeekPoints(isPast ? viewedState() : null);
+  const total  = grandTotal();
+
+  const wNext=nextRewardFor(weeklyRewards,week), wPrev=prevThresholdFor(weeklyRewards,week);
+  const wPct  = wNext ? Math.min(100,Math.round(((week-wPrev)/(wNext.threshold-wPrev))*100)) : 100;
+  const tNext=nextRewardFor(totalRewards,total), tPrev=prevThresholdFor(totalRewards,total);
+  const tPct  = tNext ? Math.min(100,Math.round(((total-tPrev)/(tNext.threshold-tPrev))*100)) : 100;
+
+  document.getElementById('footer').innerHTML = `
+    <div class="footer-card">
+      <div class="footer-card-title">${isPast ? '🗓️ Cette semaine-là' : '🗓️ Cette semaine'}</div>
+      <div class="pts-big">${week} pts</div>
+      <div class="next-reward-label">${wNext ? wNext.label : '🏆 Semaine parfaite !'}</div>
+      <div class="pts-remaining">${wNext ? `encore ${wNext.threshold-week} pts` : ''}</div>
+      <div class="progress-wrap"><div class="progress-fill weekly" style="width:${wPct}%"></div></div>
+    </div>
+    <div class="footer-card">
+      <div class="footer-card-title">🏅 Total cumulé</div>
+      <div class="pts-big">${total} pts</div>
+      <div class="next-reward-label">${tNext ? tNext.label : '🏆 Toutes débloquées !'}</div>
+      <div class="pts-remaining">${tNext ? `encore ${tNext.threshold-total} pts` : ''}</div>
+      <div class="progress-wrap"><div class="progress-fill total" style="width:${tPct}%"></div></div>
+    </div>`;
+}
+
+// ── Tap handler ──
+function handleTap(di, slotKey) {
+  const wid = viewedWeekId();
+  if (!weeks[wid]) weeks[wid] = {};
+  if (!weeks[wid][di]) weeks[wid][di] = {};
+  weeks[wid][di][slotKey] = !weeks[wid][di][slotKey];
+  persistAll();
+  render();
+
+  if (viewOffset < 0) return; // no celebrations for past week edits
+  checkRewardUnlocks();
+
+  const s = currentState();
+  if (di===todayIdx && (s[di]?.myself || s[di]?.parent)) {
+    const key=`_dc_${wid}`;
+    if (!weeks[wid][key]) { weeks[wid][key]=true; persistAll(); triggerCelebration('day'); }
+  }
+  if (Array.from({length:7},(_,i)=>i).every(i=>s[i]&&(s[i].myself||s[i].parent))) {
+    const key=`_wc_${wid}`;
+    if (!weeks[wid][key]) { weeks[wid][key]=true; persistAll(); setTimeout(()=>triggerCelebration('week'),600); }
+  }
+}
+
+function checkRewardUnlocks() {
+  const wid=currentWeekId(), week=calcWeekPoints(), total=grandTotal();
+  if (!weeks[wid]) weeks[wid]={};
+  weeklyRewards.forEach(r => {
+    const key=`_wr_${wid}_${r.threshold}`;
+    if (week>=r.threshold && !weeks[wid][key]) { weeks[wid][key]=true; persistAll(); setTimeout(()=>triggerCelebration('reward',r.label),800); }
+  });
+  totalRewards.forEach(r => {
+    const key=`_tr_${r.threshold}`;
+    if (total>=r.threshold && !Object.values(weeks).some(w=>w[key])) {
+      weeks[wid][key]=true; persistAll(); setTimeout(()=>triggerCelebration('reward',r.label),800);
+    }
+  });
+}
+
+// ── PIN ──
+let pinEntry = '';
+
+function openPin(callback) {
+  pinCallback = callback;
+  pinEntry = '';
+  updatePinDots();
+  document.getElementById('pinOverlay').classList.add('show');
+}
+
+function requestPastUnlock() {
+  openPin(() => { pastUnlocked = true; render(); });
+}
+
+document.getElementById('settingsBtn').addEventListener('click', () => openPin(openSettings));
+
+function pinKey(k) {
+  if (pinEntry.length >= 4) return;
+  pinEntry += k;
+  updatePinDots();
+  if (pinEntry.length === 4) {
+    setTimeout(() => {
+      if (pinEntry === String(pin)) {
+        document.getElementById('pinOverlay').classList.remove('show');
+        if (pinCallback) { pinCallback(); pinCallback = null; }
+      } else {
+        document.querySelectorAll('.pin-dot').forEach(d => d.classList.add('error'));
+        document.getElementById('pinBox').classList.add('shake');
+        setTimeout(() => {
+          pinEntry = '';
+          updatePinDots();
+          document.getElementById('pinBox').classList.remove('shake');
+        }, 500);
+      }
+    }, 100);
+  }
+}
+
+function pinDel() {
+  pinEntry = pinEntry.slice(0,-1);
+  updatePinDots();
+}
+
+function closePin() {
+  pinEntry = '';
+  document.getElementById('pinOverlay').classList.remove('show');
+}
+
+
+function updatePinDots() {
+  for (let i=0; i<4; i++) {
+    const d = document.getElementById('d'+i);
+    d.classList.remove('error');
+    d.classList.toggle('filled', i < pinEntry.length);
+  }
+}
+
+function savePin() {
+  const val = document.getElementById('newPinInput').value.trim();
+  if (/^\d{4}$/.test(val)) {
+    pin = val;
+    lsSet('th_pin', pin);
+    document.getElementById('newPinInput').value = '';
+    alert('Code PIN mis à jour !');
+  } else {
+    alert('Le code doit contenir exactement 4 chiffres.');
+  }
+}
+
+// ── Settings ──
+function openSettings() {
+  document.getElementById('titleInput').value = prefs.title || '';
+  document.getElementById('settingsPtsDisplay').textContent = `Total : ${grandTotal()} pts`;
+  document.getElementById('ptsAdjust').value = grandTotal();
+  buildSwatches();
+  buildRewardsList('weekly');
+  buildRewardsList('total');
+  document.getElementById('settingsPanel').classList.add('open');
+}
+
+function closeSettings() {
+  saveAllRewards();
+  prefs.title = document.getElementById('titleInput').value.trim() || '🚽 Héros des Toilettes';
+  lsSet('th_prefs', prefs);
+  applyPrefs();
+  document.getElementById('settingsPanel').classList.remove('open');
+  render();
+}
+
+function applyPrefs() {
+  document.getElementById('widgetTitle').textContent = prefs.title || '🚽 Héros des Toilettes';
+  const bg = prefs.bg || 'transparent';
+  document.body.style.background = bg === 'transparent' ? 'transparent' : bg;
+}
+
+function buildSwatches() {
+  const c = document.getElementById('bgSwatches');
+  c.innerHTML = '';
+  BG_PRESETS.forEach(p => {
+    const sw = document.createElement('div');
+    sw.className = 'bg-swatch'+(p.cls?' '+p.cls:'')+(prefs.bg===p.value?' active':'');
+    if (!p.cls) sw.style.background = p.value;
+    sw.title = p.label;
+    sw.addEventListener('click', () => { prefs.bg=p.value; lsSet('th_prefs',prefs); applyPrefs(); buildSwatches(); });
+    c.appendChild(sw);
+  });
+  document.getElementById('customColor').addEventListener('input', function() {
+    prefs.bg = this.value; lsSet('th_prefs',prefs); applyPrefs();
+    c.querySelectorAll('.bg-swatch').forEach(s => s.classList.remove('active'));
+  });
+}
+
+function buildRewardsList(type) {
+  const list = type==='weekly' ? weeklyRewards : totalRewards;
+  const el   = document.getElementById(type==='weekly' ? 'weeklyRewardsList' : 'totalRewardsList');
+  el.innerHTML = '';
+  list.forEach((r,i) => {
+    const row = document.createElement('div');
+    row.className = 'reward-row';
+    row.innerHTML = `
+      <input type="text"   class="r-label"  value="${r.label}"     placeholder="Récompense">
+      <input type="number" class="r-thresh" value="${r.threshold}" min="1" max="9999">
+      <button class="btn-del" onclick="removeReward('${type}',${i})">×</button>`;
+    el.appendChild(row);
+  });
+}
+
+function saveAllRewards() {
+  weeklyRewards = collectRewards('weeklyRewardsList');
+  totalRewards  = collectRewards('totalRewardsList');
+  lsSet('th_wrew', weeklyRewards);
+  lsSet('th_trew', totalRewards);
+}
+
+function collectRewards(elId) {
+  return Array.from(document.querySelectorAll(`#${elId} .reward-row`)).map(row => ({
+    label:     row.querySelector('.r-label').value.trim() || '?',
+    threshold: parseInt(row.querySelector('.r-thresh').value) || 10,
+  })).sort((a,b) => a.threshold - b.threshold);
+}
+
+function addReward(type) {
+  saveAllRewards();
+  const list = type==='weekly' ? weeklyRewards : totalRewards;
+  list.push({ label:'🎁 Nouvelle récompense', threshold:(list[list.length-1]?.threshold||0)+20 });
+  buildRewardsList(type);
+}
+
+function removeReward(type, i) {
+  saveAllRewards();
+  (type==='weekly' ? weeklyRewards : totalRewards).splice(i,1);
+  buildRewardsList(type);
+}
+
+// ── Points adjust ──
+function applyPtsAdjust() {
+  const newTotal = parseInt(document.getElementById('ptsAdjust').value) || 0;
+  totalPoints = Math.max(0, newTotal - calcWeekPoints());
+  document.getElementById('ptsAdjust').value = grandTotal();
+  document.getElementById('settingsPtsDisplay').textContent = `Total : ${grandTotal()} pts`;
+  persistAll();
+  renderFooter();
+}
+
+function cancelSettings() {
+  document.getElementById('settingsPanel').classList.remove('open');
+}
+
+function confirmResetPoints() {
+  document.getElementById('confirmResetPtsDialog').classList.add('show');
+}
+function doResetPoints(yes) {
+  document.getElementById('confirmResetPtsDialog').classList.remove('show');
+  if (!yes) return;
+  totalPoints = 0;
+  Object.values(weeks).forEach(w => { Object.keys(w).forEach(k => { if (k.startsWith('_tr_')) delete w[k]; }); });
+  persistAll();
+  document.getElementById('settingsPtsDisplay').textContent = `Total : ${grandTotal()} pts`;
+  renderFooter();
+}
+
+// ── Reset week ──
+function confirmReset() {
+  document.getElementById('confirmDialog').classList.add('show');
+}
+function doReset(yes) {
+  document.getElementById('confirmDialog').classList.remove('show');
+  if (!yes) return;
+  totalPoints += calcWeekPoints();
+  weeks[currentWeekId()] = {};
+  viewOffset = 0;
+  persistAll();
+  render();
+}
+
+// ── Celebration ──
+function triggerCelebration(type, label) {
+  const cfg = {
+    day:    { e:'⭐', msg:"Bravo aujourd'hui ! 🌟",        n:35 },
+    week:   { e:'🏆', msg:"HÉROS DE LA SEMAINE ! 🎊",      n:90 },
+    reward: { e:'🎁', msg:`Récompense débloquée !\n${label||''}`, n:70 },
+  };
+  const c = cfg[type]||cfg.day;
+  spawnConfetti(c.n);
+  document.getElementById('celebEmoji').textContent = c.e;
+  document.getElementById('celebMsg').textContent   = c.msg;
+  document.getElementById('celebration').classList.add('show');
+}
+function closeCelebration() {
+  document.getElementById('celebration').classList.remove('show');
+}
+
+function spawnConfetti(n) {
+  const colors=['#ff6b6b','#ffd93d','#6bcb77','#4d96ff','#c77dff','#ff9f1c'];
+  for(let i=0;i<n;i++){
+    const e=document.createElement('div');
+    e.className='confetti-piece';
+    e.style.cssText=`left:${Math.random()*100}vw;background:${colors[~~(Math.random()*colors.length)]};animation-duration:${1.5+Math.random()*2}s;animation-delay:${Math.random()*0.8}s`;
+    document.body.appendChild(e);
+    e.addEventListener('animationend',()=>e.remove());
+  }
+}
+
+// ── File System ──
+let fileHandle = null;
+
+function openDB() {
+  return new Promise((res,rej)=>{
+    const r=indexedDB.open('toiletHeroDB',1);
+    r.onupgradeneeded=e=>e.target.result.createObjectStore('handles');
+    r.onsuccess=e=>res(e.target.result); r.onerror=rej;
+  });
+}
+async function storeHandle(h) {
+  const db=await openDB();
+  return new Promise((res,rej)=>{ const tx=db.transaction('handles','readwrite'); tx.objectStore('handles').put(h,'save'); tx.oncomplete=res; tx.onerror=rej; });
+}
+async function getHandle() {
+  try { const db=await openDB(); return new Promise(res=>{ const r=db.transaction('handles','readonly').objectStore('handles').get('save'); r.onsuccess=e=>res(e.target.result||null); r.onerror=()=>res(null); }); }
+  catch(e){ return null; }
+}
+
+function filePayload() {
+  return JSON.stringify({ weeks, totalPoints, weeklyRewards, totalRewards });
+}
+
+async function saveToFile() {
+  if (!fileHandle) return;
+  try { const w=await fileHandle.createWritable(); await w.write(filePayload()); await w.close(); } catch(e){}
+}
+
+async function loadFromFile() {
+  if (!fileHandle) return false;
+  try {
+    const data = JSON.parse(await (await fileHandle.getFile()).text());
+    if (!data) return false;
+    if (data.weeks)                          { weeks=data.weeks;               lsSet('th_weeks',weeks); }
+    if (typeof data.totalPoints==='number')  { totalPoints=data.totalPoints;   lsSet('th_pts',totalPoints); }
+    if (Array.isArray(data.weeklyRewards))   { weeklyRewards=data.weeklyRewards; lsSet('th_wrew',weeklyRewards); }
+    if (Array.isArray(data.totalRewards))    { totalRewards=data.totalRewards;  lsSet('th_trew',totalRewards); }
+    return true;
+  } catch(e){ return false; }
+}
+
+function setFileStatus(msg) {
+  const e=document.getElementById('fileStatusBox'); if(e) e.innerHTML=msg;
+}
+
+async function openSaveFile() {
+  try {
+    [fileHandle]=await window.showOpenFilePicker({ types:[{description:'JSON',accept:{'application/json':['.json']}}], multiple:false });
+    await storeHandle(fileHandle); await loadFromFile();
+    setFileStatus(`✅ <b>${fileHandle.name}</b> — sauvegarde active`); render();
+  } catch(e){}
+}
+
+async function createSaveFile() {
+  try {
+    fileHandle=await window.showSaveFilePicker({ suggestedName:'toiletHero_save.json', types:[{description:'JSON',accept:{'application/json':['.json']}}] });
+    await storeHandle(fileHandle); await saveToFile();
+    setFileStatus(`✅ <b>${fileHandle.name}</b> — sauvegarde active`);
+  } catch(e){}
+}
+
+async function init() {
+  // Migrate old single-week state to weeks format
+  const oldState = ls('th_state', null);
+  if (oldState && Object.keys(oldState).length > 0 && !weeks[currentWeekId()]) {
+    weeks[currentWeekId()] = oldState;
+    lsSet('th_weeks', weeks);
+    localStorage.removeItem('th_state');
+  }
+
+  // Migrate rewards to latest defaults if revision outdated
+  const REV = 2;
+  if (ls('th_rev', 0) < REV) {
+    weeklyRewards = DEFAULT_WEEKLY_REWARDS.map(r=>({...r}));
+    totalRewards  = DEFAULT_TOTAL_REWARDS.map(r=>({...r}));
+    lsSet('th_wrew', weeklyRewards);
+    lsSet('th_trew', totalRewards);
+    lsSet('th_rev', REV);
+  }
+
+  fileHandle = await getHandle();
+  if (fileHandle) {
+    const perm = await fileHandle.queryPermission({ mode:'readwrite' });
+    if (perm==='granted') { await loadFromFile(); setFileStatus(`✅ <b>${fileHandle.name}</b> — sauvegarde active`); }
+    else setFileStatus(`⚠️ <b>${fileHandle.name}</b> — rouvrir dans Réglages pour restaurer`);
+  }
+  applyPrefs();
+  render();
+}
+
+init();
+</script>
+</body>
+</html>
